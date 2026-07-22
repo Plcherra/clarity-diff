@@ -2,7 +2,7 @@
   "name": "clarity-diff",
   "displayName": "Clarity Diff",
   "description": "Plain-English explanations of what the AI just changed, whether it matches your intent, and what to do next — automatically, inside Cursor.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "clarity-diff",
   "license": "MIT",
   "repository": {
@@ -96,10 +96,12 @@
         },
         "clarityDiff.contextLevel": {
           "type": "string",
-          "enum": ["diffOnly", "changedFiles"],
+          "enum": ["diffOnly", "changedFiles", "neighbors", "repo"],
           "enumDescriptions": [
             "Send only the diff (fastest, least context).",
-            "Send full contents of changed files plus a project map (recommended)."
+            "Send full contents of changed files plus a project map (recommended).",
+            "Also include imported/related files of the changed files.",
+            "Also pack the whole repo's source when it fits the context budget."
           ],
           "default": "changedFiles",
           "description": "How much surrounding code context to send to the model."

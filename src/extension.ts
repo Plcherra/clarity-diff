@@ -331,9 +331,15 @@ function formatContextNote(context: CodeContext | undefined): string | undefined
   if (!context) {
     return undefined;
   }
-  const fileCount = context.files.length;
+  const changedCount = context.files.filter((f) => f.reason === "changed").length;
+  const relatedCount = context.files.filter(
+    (f) => f.reason === "neighbor" || f.reason === "retrieved",
+  ).length;
   const parts: string[] = [];
-  parts.push(`${fileCount} ${fileCount === 1 ? "file" : "files"}`);
+  parts.push(`${changedCount} ${changedCount === 1 ? "file" : "files"}`);
+  if (relatedCount > 0) {
+    parts.push(`${relatedCount} related`);
+  }
   if (context.projectMap) {
     parts.push("project map");
   }

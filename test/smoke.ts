@@ -13,6 +13,7 @@ import { buildMessages } from "../src/llm/promptBuilder";
 import { parseExplanation, SchemaValidationError } from "../src/llm/responseSchema";
 import { ContextBudget, isDenied } from "../src/analysis/contextBudget";
 import { renderFileTree } from "../src/util/fileTree";
+import { detectLanguage, extractImports, resolveImport } from "../src/analysis/importParser";
 import { CodeContext, CollectedDiff } from "../src/types";
 
 let passed = 0;
@@ -219,6 +220,57 @@ test("omits context sections when no context is provided", () => {
   };
   const messages = buildMessages("x", diff);
   assert.ok(!messages[1].content.includes("PROJECT MAP"));
+});
+
+console.log("importParser");
+test("detects language by extension", () => {
+  assert.strictEqual(detectLanguage("src/app.ts"), "js");
+  assert.strictEqual(detectLanguage("src/app.tsx"), "js");
+  assert.strictEqual(detectLanguage("main.py"), "python");
+  assert.strictEqual(detectLanguage("notes.md"), "other");
+});
+test("extracts JS/TS import specifiers of every form", () => {
+  const src = [
+    "import a from './a';",
+    'import { b } from "../lib/b";',
+    "export { c } from './c';",
+    "import './side-effect';",
+    "const d = require('./d');",
+    "const e = await import('./e');",
+    "import pkg from 'left-pad';",
+  ].join("\n");
+  const imports = extractImports(src, "js");
+  assert.ok(imports.includes("./a"));
+  assert.ok(imports.includes("../lib/b"));
+  assert.ok(imports.includes("./c"));
+  assert.ok(imports.includes("./side-effect"));
+  assert.ok(imports.includes("./d"));
+  assert.ok(imports.includes("./e"));
+  assert.ok(imports.includes("left-pad"));
+});
+test("extracts Python import specifiers", () => {
+  const src = ["from .models import User", "from ..util import log", "import os, sys"].join("\n");
+  const imports = extractImports(src, "python");
+  assert.ok(imports.includes(".models"));
+  assert.ok(imports.includes("..util"));
+  assert.ok(imports.includes("os"));
+  assert.ok(imports.includes("sys"));
+});
+test("resolves relative JS imports to candidate paths, ignores bare imports", () => {
+  const candidates = resolveImport("src/app.ts", "./util/log", "js");
+  assert.ok(candidates.includes("src/util/log.ts"));
+  assert.ok(candidates.includes("src/util/log/index.ts"));
+  assert.deepStrictEqual(resolveImport("src/app.ts", "left-pad", "js"), []);
+  // Parent traversal resolves correctly.
+  assert.ok(resolveImport("src/a/b.ts", "../c", "js").includes("src/c.ts"));
+  // Explicit extension is respected as-is.
+  assert.deepStrictEqual(resolveImport("src/app.ts", "./data.json", "js"), ["src/data.json"]);
+});
+test("resolves relative Python imports by dot level", () => {
+  assert.ok(resolveImport("pkg/app.py", ".models", "python").includes("pkg/models.py"));
+  assert.ok(resolveImport("pkg/app.py", ".models", "python").includes("pkg/models/__init__.py"));
+  assert.ok(resolveImport("pkg/sub/app.py", "..util", "python").includes("pkg/util.py"));
+  assert.deepStrictEqual(resolveImport("pkg/app.py", "os", "python"), []);
 });
 
 console.log(`\nAll ${passed} smoke checks passed.`);
