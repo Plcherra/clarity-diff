@@ -144,6 +144,24 @@ export class GitDiffService {
     return [...seen.values()];
   }
 
+  /** List tracked files (gitignore-respecting) for the primary repository. */
+  async listFiles(): Promise<string[]> {
+    const repo = await this.getPrimaryRepository();
+    if (!repo) {
+      return [];
+    }
+    try {
+      const { stdout } = await execFileAsync("git", ["ls-files"], {
+        cwd: repo.rootUri.fsPath,
+        maxBuffer: 20 * 1024 * 1024,
+      });
+      return stdout.split(/\r?\n/).filter((line) => line.length > 0);
+    } catch (err) {
+      logger.error("git ls-files failed", err);
+      return [];
+    }
+  }
+
   private async runGitDiff(rootPath: string): Promise<string> {
     try {
       // Prefer diff vs HEAD to capture both staged and unstaged tracked changes.

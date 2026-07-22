@@ -1,4 +1,4 @@
-import { Explanation, FlagStatus, RiskLevel } from "../types";
+import { Explanation, FlagStatus, GlossaryTerm, RiskLevel } from "../types";
 
 export class SchemaValidationError extends Error {
   constructor(message: string) {
@@ -28,6 +28,24 @@ function asRiskLevel(value: unknown): RiskLevel {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function asGlossary(value: unknown): GlossaryTerm[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const terms: GlossaryTerm[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const term = asString(entry.term).trim();
+    const definition = asString(entry.definition).trim();
+    if (term.length > 0 && definition.length > 0) {
+      terms.push({ term, definition });
+    }
+  }
+  return terms;
 }
 
 /**
@@ -69,6 +87,7 @@ export function parseExplanation(raw: string): Explanation {
       reasons: asStringArray(safety.reasons),
     },
     nextSteps: asStringArray(parsed.nextSteps),
+    glossary: asGlossary(parsed.glossary),
   };
 }
 

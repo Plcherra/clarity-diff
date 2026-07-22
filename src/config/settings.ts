@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { ContextLevel } from "../types";
 
 const SECTION = "clarityDiff";
 
@@ -7,6 +8,9 @@ export interface ClarityDiffSettings {
   debounceMs: number;
   model: string;
   maxDiffBytes: number;
+  contextLevel: ContextLevel;
+  maxContextBytes: number;
+  contextExcludeGlobs: string[];
 }
 
 export function getSettings(): ClarityDiffSettings {
@@ -16,6 +20,9 @@ export function getSettings(): ClarityDiffSettings {
     debounceMs: cfg.get<number>("debounceMs", 1500),
     model: cfg.get<string>("model", "grok-4.5"),
     maxDiffBytes: cfg.get<number>("maxDiffBytes", 60000),
+    contextLevel: cfg.get<ContextLevel>("contextLevel", "changedFiles"),
+    maxContextBytes: cfg.get<number>("maxContextBytes", 120000),
+    contextExcludeGlobs: cfg.get<string[]>("contextExcludeGlobs", []),
   };
 }
 

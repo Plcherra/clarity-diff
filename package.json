@@ -2,7 +2,7 @@
   "name": "clarity-diff",
   "displayName": "Clarity Diff",
   "description": "Plain-English explanations of what the AI just changed, whether it matches your intent, and what to do next — automatically, inside Cursor.",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "publisher": "clarity-diff",
   "license": "MIT",
   "repository": {
@@ -93,6 +93,28 @@
           "default": 60000,
           "minimum": 1000,
           "description": "Maximum diff size (in bytes) sent to the model. Larger diffs are truncated."
+        },
+        "clarityDiff.contextLevel": {
+          "type": "string",
+          "enum": ["diffOnly", "changedFiles"],
+          "enumDescriptions": [
+            "Send only the diff (fastest, least context).",
+            "Send full contents of changed files plus a project map (recommended)."
+          ],
+          "default": "changedFiles",
+          "description": "How much surrounding code context to send to the model."
+        },
+        "clarityDiff.maxContextBytes": {
+          "type": "number",
+          "default": 120000,
+          "minimum": 0,
+          "description": "Maximum code-context size (in bytes) sent to the model, separate from the diff. Context is truncated to fit."
+        },
+        "clarityDiff.contextExcludeGlobs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Additional path patterns to exclude from code context (e.g. \"docs/*\"). Secrets, lockfiles, binaries, and build output are always excluded."
         }
       }
     }

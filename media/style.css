@@ -200,6 +200,32 @@ body {
   margin-bottom: 4px;
 }
 
+.cd-glossary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cd-glossary-item {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.1));
+  border-left: 3px solid var(--vscode-textLink-foreground);
+}
+
+.cd-term {
+  font-weight: 600;
+  font-size: 12px;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.cd-definition {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
 .cd-chips {
   display: flex;
   flex-wrap: wrap;
@@ -249,6 +275,12 @@ body {
 
 .cd-notice {
   font-style: italic;
+}
+
+.cd-context-note {
+  margin-top: -4px;
+  font-size: 11px;
+  opacity: 0.6;
 }
 
 p {

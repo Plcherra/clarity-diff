@@ -1,4 +1,4 @@
-import { CollectedDiff, Explanation } from "../types";
+import { CodeContext, CollectedDiff, Explanation } from "../types";
 import { buildMessages, ChatMessage, JSON_RETRY_REMINDER } from "./promptBuilder";
 import { parseExplanation, SchemaValidationError } from "./responseSchema";
 import { logger } from "../util/logger";
@@ -31,9 +31,10 @@ export class GrokClient {
   async explain(
     intent: string,
     diff: CollectedDiff,
+    context: CodeContext | undefined,
     options: ExplainOptions,
   ): Promise<Explanation> {
-    const messages = buildMessages(intent, diff);
+    const messages = buildMessages(intent, diff, context);
 
     const firstRaw = await this.complete(messages, options);
     try {

@@ -141,6 +141,10 @@
     container.appendChild(renderIntentBox(view.lastIntent));
     container.appendChild(renderControls(view.autoDetect));
 
+    if (result.contextNote) {
+      container.appendChild(el("p", "cd-muted cd-context-note", result.contextNote));
+    }
+
     // Intent match flag.
     const intentLabel =
       exp.intentMatch.status === "green"
@@ -182,6 +186,19 @@
       const ol = el("ol", "cd-list");
       exp.nextSteps.forEach((s) => ol.appendChild(el("li", null, s)));
       container.appendChild(ol);
+    }
+
+    // Jargon, explained.
+    if (Array.isArray(exp.glossary) && exp.glossary.length > 0) {
+      container.appendChild(el("h3", "cd-section-title", "Jargon, explained"));
+      const dl = el("div", "cd-glossary");
+      exp.glossary.forEach((g) => {
+        const item = el("div", "cd-glossary-item");
+        item.appendChild(el("span", "cd-term", g.term));
+        item.appendChild(el("p", "cd-definition", g.definition));
+        dl.appendChild(item);
+      });
+      container.appendChild(dl);
     }
 
     // Changed files.

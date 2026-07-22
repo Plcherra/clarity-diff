@@ -5,13 +5,14 @@ import { ApiKeyStore } from "./secrets/apiKeyStore";
 import { GitDiffService } from "./git/gitDiffService";
 import { ChangeWatcher } from "./git/changeWatcher";
 import { DiffCollector } from "./analysis/diffCollector";
+import { ContextCollector } from "./analysis/contextCollector";
 import { GrokClient, GrokError } from "./llm/grokClient";
 import { getSettings, setAutoDetect, onSettingsChanged } from "./config/settings";
 import { registerExplainLatestChange } from "./commands/explainLatestChange";
 import { registerToggleAutoDetect } from "./commands/toggleAutoDetect";
 import { registerManageApiKey } from "./commands/manageApiKey";
 import { logger } from "./util/logger";
-import { AnalysisResult } from "./types";
+import { AnalysisResult, CodeContext } from "./types";
 
 /**
  * Central orchestrator. Owns the automatic pipeline
@@ -28,6 +29,7 @@ export class ClarityController {
     private readonly apiKeys: ApiKeyStore,
     private readonly git: GitDiffService,
     private readonly collector: DiffCollector,
+    private readonly contextCollector: ContextCollector,
     private readonly grok: GrokClient,
   ) {}
 
@@ -130,8 +132,22 @@ export class ClarityController {
 
     this.provider.postView({ kind: "analyzing" });
 
+    let context: CodeContext | undefined;
     try {
-      const explanation = await this.grok.explain(this.lastIntent, diff, {
+      context = await this.contextCollector.collect(
+        settings.contextLevel,
+        diff.files,
+        settings.maxContextBytes,
+        settings.contextExcludeGlobs,
+      );
+    } catch (err) {
+      // Context is best-effort; never let it break analysis.
+      logger.error("Context collection failed; continuing with diff only", err);
+      context = undefined;
+    }
+
+    try {
+      const explanation = await this.grok.explain(this.lastIntent, diff, context, {
         apiKey,
         model: settings.model,
         signal: run.signal,
@@ -143,8 +159,9 @@ export class ClarityController {
       this.lastResult = {
         explanation,
         files: diff.files,
-        truncated: diff.truncated,
-        redacted: diff.redacted,
+        truncated: diff.truncated || (context?.truncated ?? false),
+        redacted: diff.redacted || (context?.redacted ?? false),
+        contextNote: formatContextNote(context),
       };
       this.provider.postView(this.resultView(this.lastResult));
     } catch (err) {
@@ -276,10 +293,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const apiKeys = new ApiKeyStore(context);
   const git = new GitDiffService();
   const collector = new DiffCollector(git);
+  const contextCollector = new ContextCollector(git);
   const grok = new GrokClient();
   const provider = new ClarityViewProvider(context.extensionUri);
 
-  const controller = new ClarityController(provider, apiKeys, git, collector, grok);
+  const controller = new ClarityController(provider, apiKeys, git, collector, contextCollector, grok);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ClarityViewProvider.viewType, provider, {
@@ -306,4 +324,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 export function deactivate(): void {
   logger.info("Clarity Diff deactivated.");
+}
+
+/** Build the short "context used" note shown in the panel. */
+function formatContextNote(context: CodeContext | undefined): string | undefined {
+  if (!context) {
+    return undefined;
+  }
+  const fileCount = context.files.length;
+  const parts: string[] = [];
+  parts.push(`${fileCount} ${fileCount === 1 ? "file" : "files"}`);
+  if (context.projectMap) {
+    parts.push("project map");
+  }
+  return `Context: ${parts.join(" + ")}`;
 }
