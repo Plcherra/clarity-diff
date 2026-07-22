@@ -81,10 +81,12 @@ export class GrokClient {
 
     if (!response.ok) {
       const detail = await this.readErrorDetail(response);
+      logger.error(`Grok API ${response.status}: ${detail || "(no detail)"}`);
       if (response.status === 401 || response.status === 403) {
         throw new GrokError("Grok rejected your API key. Please check it in Clarity Diff settings.");
       }
-      throw new GrokError(`Grok API error (${response.status}). ${detail}`);
+      const suffix = detail ? ` ${detail}` : "";
+      throw new GrokError(`Grok API error (${response.status}).${suffix}`);
     }
 
     const data = (await response.json()) as ChatCompletionResponse;
@@ -96,11 +98,23 @@ export class GrokClient {
   }
 
   private async readErrorDetail(response: Response): Promise<string> {
+    let bodyText = "";
     try {
-      const data = (await response.json()) as ChatCompletionResponse;
-      return data.error?.message ?? "";
+      bodyText = await response.text();
     } catch {
       return "";
     }
+    if (!bodyText) {
+      return "";
+    }
+    let message = bodyText;
+    try {
+      const data = JSON.parse(bodyText) as ChatCompletionResponse;
+      message = data.error?.message ?? bodyText;
+    } catch {
+      // Non-JSON error body; use the raw text.
+    }
+    // Keep panel messages readable.
+    return message.length > 300 ? `${message.slice(0, 300)}…` : message;
   }
 }

@@ -2,7 +2,7 @@
   "name": "clarity-diff",
   "displayName": "Clarity Diff",
   "description": "Plain-English explanations of what the AI just changed, whether it matches your intent, and what to do next — automatically, inside Cursor.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "clarity-diff",
   "license": "MIT",
   "repository": {
@@ -85,8 +85,8 @@
         },
         "clarityDiff.model": {
           "type": "string",
-          "default": "grok-2-latest",
-          "description": "Grok (xAI) model used to generate explanations."
+          "default": "grok-4.5",
+          "description": "Grok (xAI) model used to generate explanations. Use a current model from the xAI catalog (e.g. grok-4.5)."
         },
         "clarityDiff.maxDiffBytes": {
           "type": "number",
