@@ -1,0 +1,114 @@
+{
+  "name": "clarity-diff",
+  "displayName": "Clarity Diff",
+  "description": "Plain-English explanations of what the AI just changed, whether it matches your intent, and what to do next — automatically, inside Cursor.",
+  "version": "0.1.0",
+  "publisher": "clarity-diff",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "AI",
+    "SCM Providers"
+  ],
+  "keywords": [
+    "ai",
+    "diff",
+    "explain",
+    "cursor",
+    "vibe coding"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "clarityDiff",
+          "title": "Clarity Diff",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "clarityDiff": [
+        {
+          "id": "clarityDiff.panel",
+          "name": "Clarity Diff",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "clarityDiff.explainLatestChange",
+        "title": "Clarity Diff: Re-run on latest change",
+        "category": "Clarity Diff"
+      },
+      {
+        "command": "clarityDiff.toggleAutoDetect",
+        "title": "Clarity Diff: Toggle automatic detection",
+        "category": "Clarity Diff"
+      },
+      {
+        "command": "clarityDiff.setApiKey",
+        "title": "Clarity Diff: Set Grok API key",
+        "category": "Clarity Diff"
+      },
+      {
+        "command": "clarityDiff.clearApiKey",
+        "title": "Clarity Diff: Clear Grok API key",
+        "category": "Clarity Diff"
+      }
+    ],
+    "configuration": {
+      "title": "Clarity Diff",
+      "properties": {
+        "clarityDiff.autoDetect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically detect and explain the latest AI change when the git working tree settles."
+        },
+        "clarityDiff.debounceMs": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 250,
+          "description": "Quiet window (in milliseconds) after working-tree edits before analysis runs."
+        },
+        "clarityDiff.model": {
+          "type": "string",
+          "default": "grok-2-latest",
+          "description": "Grok (xAI) model used to generate explanations."
+        },
+        "clarityDiff.maxDiffBytes": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 1000,
+          "description": "Maximum diff size (in bytes) sent to the model. Larger diffs are truncated."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "compile": "tsc --noEmit",
+    "lint": "eslint src",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0"
+  }
+}
