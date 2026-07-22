@@ -4,19 +4,37 @@
     {
       "type": "npm",
       "script": "build",
-      "problemMatcher": ["$esbuild"],
+      "problemMatcher": [],
       "group": {
         "kind": "build",
         "isDefault": true
       },
-      "label": "npm: build"
+      "label": "npm: build",
+      "detail": "Bundle the extension with esbuild"
     },
     {
       "type": "npm",
       "script": "watch",
       "isBackground": true,
-      "problemMatcher": ["$esbuild-watch"],
-      "label": "npm: watch"
+      "problemMatcher": {
+        "owner": "esbuild",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^(.*)\\((\\d+),(\\d+)\\):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\[esbuild\\]",
+          "endsPattern": "watching for changes"
+        }
+      },
+      "label": "npm: watch",
+      "detail": "Rebuild the extension on file changes"
     }
   ]
 }

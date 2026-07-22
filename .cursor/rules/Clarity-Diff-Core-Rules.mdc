@@ -1,0 +1,340 @@
+---
+alwaysApply: true
+---
+
+These are the non-negotiable behavioral, style, and decision-making rules for building
+and evolving Clarity Diff. They apply to every feature, fix, and refactor. When a change
+would violate one of these rules, stop and confirm with a human first.
+
+Clarity Diff is a Cursor / VS Code extension that automatically explains AI code
+changes in plain English for vibe coders. See [docs/](docs/) for the full foundation
+package (user flows, architecture, file structure, coding guidelines).
+
+
+
+1. Product principles
+
+1.1 Automatic-first, always
+
+
+
+
+
+The primary path is automatic: detect changes from the git working tree via the
+debounced [changeWatcher](src/git/changeWatcher.ts) and render results without user
+action.
+
+
+
+The manual "Re-run" command (clarityDiff.explainLatestChange) is the only
+fallback. Do not add selected-files mode, paste mode, or other manual entry points —
+they are explicitly out of MVP scope.
+
+
+
+Detection must keep working even before the panel is opened (watcher starts at
+activation, onStartupFinished).
+
+
+
+1.2 Explanations are for vibe coders
+
+
+
+
+
+Write every user-facing string in plain, friendly, non-technical English. Assume
+the reader can prompt an AI but does not read code fluently.
+
+
+
+Prefer short sentences. Avoid jargon (no "refactor," "AST," "race condition" without a
+plain-language gloss). Explain impact, not implementation.
+
+
+
+Every green/red flag must be paired with a one-line reason.
+
+
+
+Keep the summary to 1–3 sentences; next steps to 1–3 items.
+
+
+
+1.3 Never guess intent
+
+
+
+
+
+Use the remembered user intent (last-known prompt / the always-visible intent box)
+for the Intent Match check.
+
+
+
+If no intent is available, say so honestly ("You didn't tell me what you asked for, so
+I'm judging this on the change alone") rather than inventing an intended goal.
+
+
+
+Never fabricate what the user "probably" wanted.
+
+
+
+1.4 Safety first
+
+
+
+
+
+Always redact secrets before anything leaves the machine. Every outbound payload
+must pass through [safetyScanner](src/analysis/safetyScanner.ts) /
+[redact](src/util/redact.ts). No exceptions, no "quick" direct calls to the model.
+
+
+
+Require explicit one-time consent before the first request to xAI, and never send
+code before consent exists.
+
+
+
+The API key lives only in SecretStorage (see
+[apiKeyStore](src/secrets/apiKeyStore.ts)). Never write it to settings, logs, the
+webview, or telemetry.
+
+
+
+1.5 Be honest about limitations
+
+
+
+
+
+When context is partial, say it: "I can only see the diff, not the whole project," or
+"The diff was truncated because it was large."
+
+
+
+When risk is uncertain, prefer "medium" risk with an honest reason over false
+confidence.
+
+
+
+Surface redaction/truncation notices in the UI so the user knows what the model saw.
+
+
+
+1.6 Tone
+
+
+
+
+
+Default to helpful and encouraging. The user may feel lost — reassure, don't
+lecture.
+
+
+
+Red flags are framed constructively: what happened, why it matters, what to do next.
+
+
+
+Never blame the user or the AI; describe and guide.
+
+
+
+1.7 Scope discipline
+
+
+
+
+
+Do not add features outside the current MVP without explicit confirmation.
+
+
+
+Post-MVP items (one-click apply, safety scoring, deeper architecture understanding,
+multi-provider LLMs, VS Code marketplace polish) stay out until requested.
+
+
+
+If a request implies scope expansion, pause and confirm before building.
+
+
+
+
+
+2. Code style & structure
+
+
+
+2.1 Language
+
+
+
+
+
+TypeScript with strict: true. No any — use unknown plus narrowing.
+
+
+
+Respect noUnusedLocals / noUnusedParameters (prefix intentionally-unused params
+with _).
+
+
+
+Async I/O everywhere; never block the extension host.
+
+
+
+2.2 Architecture boundaries
+
+
+
+
+
+Host vs webview separation is sacred. The only shared surface is
+[panel/messages.ts](src/panel/messages.ts). The webview has no network access and no
+secrets; it communicates solely via typed postMessage.
+
+
+
+One responsibility per module. Commands orchestrate; services
+(git/, analysis/, llm/) do the work. Keep orchestration in
+[extension.ts](src/extension.ts) (the ClarityController).
+
+
+
+Command modules import the controller as a type only to avoid runtime cycles.
+
+
+
+2.3 Naming
+
+
+
+
+
+Modules: camelCase.ts. Classes / providers: PascalCase.ts.
+
+
+
+Types / interfaces / classes: PascalCase; functions / vars: camelCase; constants:
+UPPER_SNAKE_CASE.
+
+
+
+All command IDs and settings namespaced under clarityDiff.*.
+
+
+
+2.4 Webview security
+
+
+
+
+
+Strict CSP with a per-load nonce; default-src 'none'; load local assets via
+asWebviewUri; no remote resources.
+
+
+
+Render model output as text, never raw HTML (use textContent / DOM construction,
+as in [media/main.js](media/main.js)). Treat all model text as untrusted.
+
+
+
+
+
+3. Decision-making guidelines
+
+When choosing how to implement something, decide in this priority order:
+
+
+
+
+
+User safety & privacy — does it risk leaking secrets or code without consent? If
+
+so, don't.
+
+
+
+Automatic-first UX — does it keep the zero-friction automatic flow intact?
+
+
+
+Clarity for vibe coders — is the result understandable to someone who can't read
+
+code?
+
+
+
+Simplicity / performance — is it the lightest solution that works? (See the
+
+"lightweight & fast" skill.)
+
+
+
+Scope — is it inside the MVP? If not, confirm first.
+
+For reversible, low-risk choices (naming, defaults, wording, which equivalent approach),
+just pick a sensible option and note it. For scope changes, destructive actions, or
+anything touching secrets/consent, ask first.
+
+
+
+
+
+4. Error handling rules
+
+
+
+
+
+Wrap all external calls (git, Grok, file I/O) in typed try/catch.
+
+
+
+Convert failures into friendly panel messages; log technical detail via the single
+[logger](src/util/logger.ts) OutputChannel — never with console.log of secrets.
+
+
+
+Validate all LLM output through [responseSchema](src/llm/responseSchema.ts) before
+rendering; treat malformed responses as recoverable (retry once, then a friendly
+error).
+
+
+
+Never let an analysis failure crash activation or the watcher. Degrade gracefully.
+
+
+
+
+
+5. Definition of done (per change)
+
+A change is done only when:
+
+
+
+
+
+npm run compile (tsc) passes with no errors.
+
+
+
+npm run lint passes.
+
+
+
+npm run build (esbuild) produces dist/extension.js.
+
+
+
+No secret can leak (redaction path intact) and no user-facing jargon crept in.
+
+
+
+The automatic flow still works end-to-end (or the change is explicitly a fallback).

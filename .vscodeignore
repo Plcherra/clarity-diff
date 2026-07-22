@@ -1,11 +1,16 @@
 .vscode/**
 src/**
 docs/**
+test/**
+dist-test/**
 node_modules/**
+.cursor/**
 esbuild.js
 eslint.config.js
 tsconfig.json
 .prettierrc
 .gitignore
+CLARITY-DIFF-RULES.md
+CLARITY-DIFF-SKILLS.md
 **/*.map
 **/*.ts
